@@ -57,7 +57,13 @@ dgoal init goals/my-goal \
 
 ## Try the example
 
-From a clone of this repository:
+The example tracks a model promotion. The active goal requires `0.90`
+accuracy, but the recorded result is `0.87`. The owner has proposed lowering
+the threshold to `0.85`, but that change is still waiting for activation. This
+shows how Durable Goals keeps desired intent separate from the rules currently
+in force.
+
+From a clone of this repository, run:
 
 ```bash
 python -m pip install -e .
@@ -66,6 +72,10 @@ dgoal validate examples/model-refresh/gateway.json
 dgoal status examples/model-refresh/gateway.json
 dgoal resolve examples/model-refresh/gateway.json
 ```
+
+- `validate` checks the files and their checksums.
+- `status` shows whether the active and proposed goal are complete.
+- `resolve` shows the contracts, evidence, and pending activation together.
 
 ## What is included
 
