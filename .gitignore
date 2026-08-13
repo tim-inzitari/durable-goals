@@ -39,5 +39,17 @@ htmlcov/
 **/.dgoal/workflow-claims/
 **/STATUS.json
 
-# Local technical-paper sources, figures, and rendered artifacts.
-paper/
+# Publish the paper and its source figures; keep local render/QA artifacts out.
+paper/*
+!paper/Durable_Goals_IEEE_Writeup.md
+!paper/Durable_Goals_IEEE_Writeup.docx
+!paper/Durable_Goals_IEEE_Writeup.pdf
+!paper/build_paper.py
+!paper/figures/
+paper/figures/*
+!paper/figures/durable-goals-resolution.html
+!paper/figures/durable-goals-resolution.svg
+!paper/figures/durable-goals-resolution.png
+!paper/figures/durable-goals-workflow.html
+!paper/figures/durable-goals-workflow.svg
+!paper/figures/durable-goals-workflow.png
