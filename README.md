@@ -15,9 +15,32 @@ scripts, or another harness a shared answer to three questions:
 - What work is ready next?
 - What evidence proves the goal is complete?
 
-## Quick start
+## Install
 
 Requires Python 3.11 or newer and has no runtime dependencies.
+
+```bash
+uv tool install durable-goals
+```
+
+Or install it with pip:
+
+```bash
+python -m pip install durable-goals
+```
+
+Then use the `dgoal` command anywhere:
+
+```bash
+dgoal --version
+dgoal init goals/my-goal \
+  --goal-id my-goal \
+  --objective "Describe what needs to be finished."
+```
+
+## Try the example
+
+From a clone of this repository:
 
 ```bash
 python -m pip install -e .
@@ -25,14 +48,6 @@ python -m pip install -e .
 dgoal validate examples/model-refresh/gateway.json
 dgoal status examples/model-refresh/gateway.json
 dgoal resolve examples/model-refresh/gateway.json
-```
-
-To start a new goal:
-
-```bash
-dgoal init goals/my-goal \
-  --goal-id my-goal \
-  --objective "Describe what needs to be finished."
 ```
 
 The basic convention is simple: an agent reads the goal package's `GOAL.md`

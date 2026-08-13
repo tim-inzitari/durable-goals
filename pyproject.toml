@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,9 +8,25 @@ version = "0.1.0"
 description = "A durable, evidence-backed goal protocol for long-running agents"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 authors = [{name = "durable-goals contributors"}]
+keywords = ["agents", "ai", "goals", "workflow", "dag"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/tim-inzitari/durable-goals"
+Repository = "https://github.com/tim-inzitari/durable-goals"
+Issues = "https://github.com/tim-inzitari/durable-goals/issues"
 
 [project.scripts]
 dgoal = "durable_goals.cli:main"

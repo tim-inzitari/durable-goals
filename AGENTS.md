@@ -40,12 +40,19 @@ recorded. A separate activation record adopts it. The resolver returns two contr
 This makes “the owner has changed the goal, but the change waits for a safe
 boundary” a first-class state instead of an ambiguous note.
 
-## Try the example
+## Install the published CLI
 
 The package has no runtime dependencies beyond Python 3.11.
 
 ```bash
-cd durable-goals
+uv tool install durable-goals
+# or: python -m pip install durable-goals
+```
+
+For development from a repository checkout, use an editable install and run
+the bundled example:
+
+```bash
 python -m pip install -e .
 dgoal validate examples/model-refresh/gateway.json
 dgoal status examples/model-refresh/gateway.json
