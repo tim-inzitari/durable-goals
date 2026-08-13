@@ -1,0 +1,6 @@
+{
+  "schema": "example.rollout-readiness-receipt/v1",
+  "reviewed_at": "2026-08-12T17:40:00Z",
+  "rollback_plan_ready": true,
+  "canary_plan_reviewed": true
+}

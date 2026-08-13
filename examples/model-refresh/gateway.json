@@ -4,7 +4,7 @@
   "current_revision": 2,
   "contract": {
     "path": "contract.json",
-    "sha256": "sha256:c0ad6499425bf33d669efb9b148034b5806165382d1a75a088bd6be4ddfa5626"
+    "sha256": "sha256:bcbb7e6858c43ca772a8885411b7f73e7b8482c404c604f223052c212da1077f"
   },
   "amendments": {
     "path": "amendments.jsonl",
@@ -16,7 +16,7 @@
   },
   "evidence_index": {
     "path": "evidence-index.json",
-    "sha256": "sha256:f369fb00c640367ad1df943e92e552de3235330ae9837ddf964107d90b1d1217"
+    "sha256": "sha256:902d1705d2d206978b0b1274697c34e36f5c1142fd8071e103f80d23bd22ff4c"
   },
   "status": {
     "path": "STATUS.json"

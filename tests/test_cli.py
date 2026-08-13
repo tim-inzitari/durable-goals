@@ -55,7 +55,7 @@ class CliTests(unittest.TestCase):
                 '"Promote and monitor the validated model."',
                 "--expect",
                 "/objective",
-                '"Promote a validated model without losing provenance."',
+                '"Evaluate, approve, and stage a model release with verified quality, safety, rollout, and rollback evidence."',
                 "--reason",
                 "Owner added monitoring.",
             )

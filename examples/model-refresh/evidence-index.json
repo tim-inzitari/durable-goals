@@ -13,6 +13,18 @@
       "path": "receipts/release.json",
       "sha256": "sha256:d495ad01dd8d430fed64f6ab0e4de313884b796f076718c3c68b5d08f3b61620",
       "contract_revision": 1
+    },
+    {
+      "id": "safety",
+      "path": "receipts/safety.json",
+      "sha256": "sha256:d27cacd15281b12975205a92c7e81f28a74c4b30bff3d3a56946213da80ebc21",
+      "contract_revision": 1
+    },
+    {
+      "id": "rollout",
+      "path": "receipts/rollout.json",
+      "sha256": "sha256:7f37c8ed5d61841397a6e87b7f76265bc013287d1b03379051cba03ce4ca12f1",
+      "contract_revision": 1
     }
   ]
 }

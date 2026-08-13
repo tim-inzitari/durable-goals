@@ -1,0 +1,6 @@
+{
+  "schema": "example.safety-receipt/v1",
+  "completed_at": "2026-08-12T17:35:00Z",
+  "red_team_passed": true,
+  "high_severity_findings": 0
+}

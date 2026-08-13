@@ -39,7 +39,7 @@ class WriterTests(unittest.TestCase):
                     {
                         "op": "set",
                         "path": "/objective",
-                        "expect": "Promote a validated model without losing provenance.",
+                        "expect": "Evaluate, approve, and stage a model release with verified quality, safety, rollout, and rollback evidence.",
                         "value": "Promote and monitor the validated model.",
                     }
                 ],

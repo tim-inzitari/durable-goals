@@ -2,7 +2,7 @@
   "schema": "durable-goals.contract/v1",
   "goal_id": "example-model-refresh",
   "revision": 1,
-  "objective": "Promote a validated model without losing provenance.",
+  "objective": "Evaluate, approve, and stage a model release with verified quality, safety, rollout, and rollback evidence.",
   "invariants": [
     {
       "id": "immutable-evidence",
@@ -11,6 +11,14 @@
     {
       "id": "explicit-activation",
       "statement": "Recorded owner intent does not silently change activated reality."
+    },
+    {
+      "id": "safety-gate",
+      "statement": "A release must pass its declared safety review with no unresolved high-severity findings."
+    },
+    {
+      "id": "rollback-ready",
+      "statement": "A rollback plan and reviewed canary plan must exist before promotion."
     }
   ],
   "completion": {
@@ -19,6 +27,26 @@
         "evidence": "evaluation",
         "field": "/metrics/accuracy",
         "gte": 0.9
+      },
+      {
+        "evidence": "safety",
+        "field": "/red_team_passed",
+        "equals": true
+      },
+      {
+        "evidence": "safety",
+        "field": "/high_severity_findings",
+        "equals": 0
+      },
+      {
+        "evidence": "rollout",
+        "field": "/rollback_plan_ready",
+        "equals": true
+      },
+      {
+        "evidence": "rollout",
+        "field": "/canary_plan_reviewed",
+        "equals": true
       },
       {
         "evidence": "release",

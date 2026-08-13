@@ -7,7 +7,13 @@ Read this file completely before acting on this goal.
 
 ## Objective
 
-> Promote a validated model without losing provenance.
+> Evaluate, approve, and stage a model release with verified quality, safety,
+> rollout, and rollback evidence.
+
+The work includes checking model quality, confirming the safety review has no
+unresolved high-severity findings, verifying rollback and canary plans, and
+confirming release approval. These are parts of one goal; they do not each
+create or activate a new goal revision.
 
 ## Canonical sources
 
