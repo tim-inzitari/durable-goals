@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from .evidence import assert_declared_evidence, evaluate_predicate
-from .io import load_json, load_jsonl, resolve_local_path, sha256_file, verify_reference
+from .io import (
+    load_json,
+    load_json_bytes,
+    load_jsonl_bytes,
+    verify_reference_bytes,
+)
 from .pointers import apply_operations
 from .validate import (
     validate_amendments,
@@ -35,16 +40,12 @@ class Resolution:
 def _load_evidence(root: Path, index: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for entry in index["entries"]:
-        path = resolve_local_path(root, entry["path"])
-        actual = sha256_file(path)
-        if actual != entry["sha256"]:
-            from .errors import IntegrityError
-
-            raise IntegrityError(
-                f"evidence {entry['id']} checksum mismatch: expected "
-                f"{entry['sha256']}, observed {actual}"
-            )
-        result[entry["id"]] = load_json(path)
+        path, payload = verify_reference_bytes(
+            root,
+            {"path": entry["path"], "sha256": entry["sha256"]},
+            label=f"evidence {entry['id']}",
+        )
+        result[entry["id"]] = load_json_bytes(payload, source=path)
     return result
 
 
@@ -54,29 +55,40 @@ def resolve_gateway(gateway_path: str | Path) -> Resolution:
     gateway = validate_gateway(load_json(path))
     goal_id = gateway["goal_id"]
 
-    contract_path = verify_reference(root, gateway["contract"], label="gateway.contract")
-    amendments_path = verify_reference(root, gateway["amendments"], label="gateway.amendments")
-    activations_path = verify_reference(root, gateway["activations"], label="gateway.activations")
-    evidence_index_path = verify_reference(
+    contract_path, contract_payload = verify_reference_bytes(
+        root, gateway["contract"], label="gateway.contract"
+    )
+    amendments_path, amendments_payload = verify_reference_bytes(
+        root, gateway["amendments"], label="gateway.amendments"
+    )
+    activations_path, activations_payload = verify_reference_bytes(
+        root, gateway["activations"], label="gateway.activations"
+    )
+    evidence_index_path, evidence_index_payload = verify_reference_bytes(
         root, gateway["evidence_index"], label="gateway.evidence_index"
     )
 
-    base_contract = validate_contract(load_json(contract_path), goal_id=goal_id)
+    base_contract = validate_contract(
+        load_json_bytes(contract_payload, source=contract_path), goal_id=goal_id
+    )
     amendments = validate_amendments(
-        load_jsonl(amendments_path),
+        load_jsonl_bytes(amendments_payload, source=amendments_path),
         goal_id=goal_id,
         base_revision=base_contract["revision"],
         current_revision=gateway["current_revision"],
     )
     activations = validate_activations(
-        load_jsonl(activations_path),
+        load_jsonl_bytes(activations_payload, source=activations_path),
         goal_id=goal_id,
         amendment_revisions=[item["revision"] for item in amendments],
     )
     active_amendment_revisions = {
         item["amendment_revision"] for item in activations
     }
-    index = validate_evidence_index(load_json(evidence_index_path), goal_id=goal_id)
+    index = validate_evidence_index(
+        load_json_bytes(evidence_index_payload, source=evidence_index_path),
+        goal_id=goal_id,
+    )
     evidence = _load_evidence(root, index)
     evidence_checksums = {item["id"]: item["sha256"] for item in index["entries"]}
     for activation in activations:

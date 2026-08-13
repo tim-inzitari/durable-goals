@@ -50,6 +50,8 @@ class WriterTests(unittest.TestCase):
             gateway = json.loads(gateway_path.read_text())
             self.assertEqual(gateway["current_revision"], 3)
             self.assertTrue(gateway["amendments"]["path"].startswith(".dgoal/history/"))
+            history_path = package / gateway["amendments"]["path"]
+            self.assertEqual(history_path.stat().st_mode & 0o222, 0)
             self.assertEqual((package / "amendments.jsonl").read_bytes(), original_ledger)
             self.assertEqual(resolution.current_revision, 3)
             self.assertEqual(resolution.active_revision, 1)
@@ -77,6 +79,19 @@ class WriterTests(unittest.TestCase):
             self.assertFalse(status["authoritative"])
             self.assertEqual(status["active_revision"], 2)
             self.assertEqual(resolve_gateway(gateway_path).status, status)
+
+    def test_status_cannot_overwrite_an_authoritative_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            package, gateway_path = self.copy_example(directory)
+            gateway = json.loads(gateway_path.read_text())
+            gateway["status"]["path"] = "contract.json"
+            gateway_path.write_text(json.dumps(gateway) + "\n")
+            before = (package / "contract.json").read_bytes()
+
+            with self.assertRaisesRegex(ResolutionError, "collides"):
+                materialize_status(gateway_path)
+
+            self.assertEqual((package / "contract.json").read_bytes(), before)
 
     def test_initialize_and_chain_successor_goals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -128,6 +143,24 @@ class WriterTests(unittest.TestCase):
             transition = source.status["transitions"][0]
             self.assertEqual(transition["goal_id"], "successor-goal")
             self.assertTrue(transition["ready"])
+
+    def test_initialized_canonical_records_are_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "goal"
+            gateway = initialize_goal_package(
+                root, goal_id="immutable", objective="Preserve revision history."
+            )
+
+            for name in (
+                "GOAL.md",
+                "contract.json",
+                "amendments.jsonl",
+                "activations.jsonl",
+                "evidence-index.json",
+            ):
+                with self.subTest(name=name):
+                    self.assertEqual((root / name).stat().st_mode & 0o222, 0)
+            self.assertNotEqual(Path(gateway).stat().st_mode & 0o200, 0)
 
     def test_safe_boundary_requires_and_binds_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

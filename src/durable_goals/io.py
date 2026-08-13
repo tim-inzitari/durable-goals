@@ -17,51 +17,72 @@ def is_sha256(value: Any) -> bool:
 
 
 def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
+    return _sha256_bytes(read_bytes(path))
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return f"sha256:{hashlib.sha256(payload).hexdigest()}"
+
+
+def read_bytes(path: Path) -> bytes:
     try:
-        with path.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(chunk)
+        return path.read_bytes()
+    except FileNotFoundError as exc:
+        raise IntegrityError(f"referenced file does not exist: {path}") from exc
     except OSError as exc:
         raise IntegrityError(f"cannot read referenced file {path}: {exc}") from exc
-    return f"sha256:{digest.hexdigest()}"
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValidationError(f"JSON contains non-finite number: {value}")
+
+
+def load_json_bytes(payload: bytes, *, source: str | Path) -> Any:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValidationError(f"JSON is not valid UTF-8 in {source}: {exc}") from exc
+    try:
+        return json.loads(
+            text,
+            object_pairs_hook=_unique_object,
+            parse_constant=_reject_json_constant,
+        )
+    except json.JSONDecodeError as exc:
+        raise ValidationError(f"invalid JSON in {source}: {exc}") from exc
 
 
 def load_json(path: Path) -> Any:
-    try:
-        with path.open("r", encoding="utf-8") as handle:
-            return json.load(handle, object_pairs_hook=_unique_object)
-    except FileNotFoundError as exc:
-        raise IntegrityError(f"referenced file does not exist: {path}") from exc
-    except json.JSONDecodeError as exc:
-        raise ValidationError(f"invalid JSON in {path}: {exc}") from exc
-    except UnicodeDecodeError as exc:
-        raise ValidationError(f"JSON is not valid UTF-8 in {path}: {exc}") from exc
-    except OSError as exc:
-        raise IntegrityError(f"cannot read referenced file {path}: {exc}") from exc
+    return load_json_bytes(read_bytes(path), source=path)
 
 
-def load_jsonl(path: Path) -> list[Any]:
+def load_jsonl_bytes(payload: bytes, *, source: str | Path) -> list[Any]:
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except FileNotFoundError as exc:
-        raise IntegrityError(f"referenced file does not exist: {path}") from exc
+        lines = payload.decode("utf-8").splitlines()
     except UnicodeDecodeError as exc:
-        raise ValidationError(f"JSONL is not valid UTF-8 in {path}: {exc}") from exc
-    except OSError as exc:
-        raise IntegrityError(f"cannot read referenced file {path}: {exc}") from exc
+        raise ValidationError(f"JSONL is not valid UTF-8 in {source}: {exc}") from exc
 
     records: list[Any] = []
     for line_number, line in enumerate(lines, start=1):
         if not line.strip():
             continue
         try:
-            records.append(json.loads(line, object_pairs_hook=_unique_object))
+            records.append(
+                json.loads(
+                    line,
+                    object_pairs_hook=_unique_object,
+                    parse_constant=_reject_json_constant,
+                )
+            )
         except (json.JSONDecodeError, ValidationError) as exc:
             raise ValidationError(
-                f"invalid JSONL record in {path}:{line_number}: {exc}"
+                f"invalid JSONL record in {source}:{line_number}: {exc}"
             ) from exc
     return records
+
+
+def load_jsonl(path: Path) -> list[Any]:
+    return load_jsonl_bytes(read_bytes(path), source=path)
 
 
 def resolve_local_path(root: Path, relative: str) -> Path:
@@ -76,6 +97,13 @@ def resolve_local_path(root: Path, relative: str) -> Path:
 
 
 def verify_reference(root: Path, reference: dict[str, Any], *, label: str) -> Path:
+    path, _ = verify_reference_bytes(root, reference, label=label)
+    return path
+
+
+def verify_reference_bytes(
+    root: Path, reference: dict[str, Any], *, label: str
+) -> tuple[Path, bytes]:
     path_value = reference.get("path")
     checksum = reference.get("sha256")
     if not isinstance(path_value, str) or not path_value:
@@ -83,16 +111,23 @@ def verify_reference(root: Path, reference: dict[str, Any], *, label: str) -> Pa
     if not is_sha256(checksum):
         raise ValidationError(f"{label}.sha256 must use sha256:<hex>")
     path = resolve_local_path(root, path_value)
-    actual = sha256_file(path)
+    payload = read_bytes(path)
+    actual = _sha256_bytes(payload)
     if actual != checksum:
         raise IntegrityError(
             f"{label} checksum mismatch: expected {checksum}, observed {actual}"
         )
-    return path
+    return path, payload
 
 
 def canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:

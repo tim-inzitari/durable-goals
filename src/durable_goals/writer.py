@@ -15,9 +15,11 @@ from .errors import ResolutionError, ValidationError
 from .evidence import evaluate_predicate, require_evidence_ids
 from .io import (
     load_json,
-    load_jsonl,
+    load_json_bytes,
+    load_jsonl_bytes,
+    read_bytes,
     resolve_local_path,
-    verify_reference,
+    verify_reference_bytes,
     write_json_lines,
 )
 from .pointers import apply_operations
@@ -68,6 +70,13 @@ def _fsync_directory(path: Path) -> None:
         os.close(descriptor)
 
 
+def _make_read_only(path: Path) -> None:
+    try:
+        os.chmod(path, 0o444)
+    except OSError as exc:
+        raise ResolutionError(f"cannot make immutable file read-only: {path}") from exc
+
+
 def _atomic_write(root: Path, path: Path, payload: bytes) -> None:
     _assert_safe_write_path(root, path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -94,13 +103,14 @@ def _write_immutable(root: Path, path: Path, payload: bytes) -> None:
     if path.exists():
         if path.read_bytes() != payload:
             raise ResolutionError(f"immutable history path already has other content: {path}")
+        _make_read_only(path)
         return
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{path.name}.", dir=path.parent
     )
     temporary = Path(temporary_name)
     try:
-        os.chmod(temporary, 0o644)
+        _make_read_only(temporary)
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(payload)
             handle.flush()
@@ -221,10 +231,10 @@ def record_amendment(
         candidate["revision"] = revision
         validate_contract(candidate, goal_id=resolution.goal_id)
 
-        amendments_path = verify_reference(
+        amendments_path, amendments_payload = verify_reference_bytes(
             root, gateway["amendments"], label="gateway.amendments"
         )
-        amendments = load_jsonl(amendments_path)
+        amendments = load_jsonl_bytes(amendments_payload, source=amendments_path)
         amendment = {
             "schema": "durable-goals.amendment/v1",
             "goal_id": resolution.goal_id,
@@ -301,18 +311,23 @@ def activate_amendment(
             )
 
         gateway = load_json(path)
-        amendments_path = verify_reference(
+        amendments_path, amendments_payload = verify_reference_bytes(
             root, gateway["amendments"], label="gateway.amendments"
         )
-        activations_path = verify_reference(
+        activations_path, activations_payload = verify_reference_bytes(
             root, gateway["activations"], label="gateway.activations"
         )
-        amendment_revisions = [item["revision"] for item in load_jsonl(amendments_path)]
-        activations = load_jsonl(activations_path)
-        evidence_index_path = verify_reference(
+        amendment_revisions = [
+            item["revision"]
+            for item in load_jsonl_bytes(amendments_payload, source=amendments_path)
+        ]
+        activations = load_jsonl_bytes(activations_payload, source=activations_path)
+        evidence_index_path, evidence_index_payload = verify_reference_bytes(
             root, gateway["evidence_index"], label="gateway.evidence_index"
         )
-        evidence_index = load_json(evidence_index_path)
+        evidence_index = load_json_bytes(
+            evidence_index_payload, source=evidence_index_path
+        )
         evidence_checksums = {
             item["id"]: item["sha256"] for item in evidence_index["entries"]
         }
@@ -355,7 +370,30 @@ def materialize_status(gateway_path: str | Path) -> Path:
         status_path_value = status_reference.get("path")
         if not isinstance(status_path_value, str) or not status_path_value:
             raise ValidationError("gateway.status.path must be a non-empty string")
+        relative_status = Path(status_path_value)
+        if ".dgoal" in relative_status.parts:
+            raise ResolutionError("generated status may not be written inside .dgoal")
         status_path = resolve_local_path(root, status_path_value)
+        reserved = {path, root / "GOAL.md"}
+        reserved.update(
+            resolve_local_path(root, gateway[key]["path"])
+            for key in ("contract", "amendments", "activations", "evidence_index")
+        )
+        if status_path in reserved:
+            raise ResolutionError(
+                f"generated status path collides with an authoritative file: {status_path}"
+            )
+        if status_path.exists():
+            existing = load_json(status_path)
+            if (
+                not isinstance(existing, dict)
+                or existing.get("schema") != "durable-goals.status/v1"
+                or existing.get("goal_id") != resolution.goal_id
+                or existing.get("authoritative") is not False
+            ):
+                raise ResolutionError(
+                    f"refusing to overwrite a non-status file: {status_path}"
+                )
         payload = (json.dumps(resolution.status, indent=2, sort_keys=True) + "\n").encode(
             "utf-8"
         )
@@ -379,16 +417,19 @@ def record_evidence(
     path = Path(gateway_path).resolve()
     root = path.parent
     source = Path(source_path).resolve()
-    load_json(source)
-    payload = source.read_bytes()
+    payload = read_bytes(source)
+    load_json_bytes(payload, source=source)
     checksum = _sha256_bytes(payload)
     with _goal_write_lock(root):
         resolution = resolve_gateway(path)
         gateway = load_json(path)
-        index_path = verify_reference(
+        index_path, index_payload = verify_reference_bytes(
             root, gateway["evidence_index"], label="gateway.evidence_index"
         )
-        index = validate_evidence_index(load_json(index_path), goal_id=resolution.goal_id)
+        index = validate_evidence_index(
+            load_json_bytes(index_payload, source=index_path),
+            goal_id=resolution.goal_id,
+        )
         if any(item["id"] == evidence_id for item in index["entries"]):
             raise ResolutionError(f"evidence id already exists: {evidence_id}")
         revision = (
@@ -527,16 +568,16 @@ When this goal is a workflow node, act on it only when `dgoal workflow next`
 emits it. The workflow never assigns or launches a model.
 """.encode("utf-8")
 
-    _atomic_write(root, root / "contract.json", contract_payload)
-    _atomic_write(root, root / "amendments.jsonl", amendments_payload)
-    _atomic_write(root, root / "activations.jsonl", activations_payload)
-    _atomic_write(root, root / "evidence-index.json", evidence_payload)
+    _write_immutable(root, root / "contract.json", contract_payload)
+    _write_immutable(root, root / "amendments.jsonl", amendments_payload)
+    _write_immutable(root, root / "activations.jsonl", activations_payload)
+    _write_immutable(root, root / "evidence-index.json", evidence_payload)
     _atomic_write(
         root,
         root / "gateway.json",
         (json.dumps(gateway, indent=2, sort_keys=True) + "\n").encode("utf-8"),
     )
-    _atomic_write(root, root / "GOAL.md", goal_markdown)
+    _write_immutable(root, root / "GOAL.md", goal_markdown)
     materialize_status(root / "gateway.json")
     return root / "gateway.json"
 

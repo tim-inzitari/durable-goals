@@ -34,6 +34,10 @@ The basic convention is simple: an agent reads the goal package's `GOAL.md`
 before acting. The repository remains the source of truth, even when the chat
 or process disappears.
 
+Canonical goal records are read-only after creation. Owner changes append a
+numbered immutable revision; only `gateway.json` advances to reference the
+latest history. Generated status and temporary workflow claims stay disposable.
+
 ## Install
 
 Requires Python 3.11 or newer and has no runtime dependencies.

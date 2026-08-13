@@ -7,8 +7,13 @@ import unittest
 from pathlib import Path
 
 from durable_goals.errors import IntegrityError, ResolutionError, ValidationError
-from durable_goals.io import sha256_file
-from durable_goals.io import load_json
+from durable_goals.evidence import evaluate_predicate
+from durable_goals.io import (
+    load_json,
+    load_json_bytes,
+    sha256_file,
+    verify_reference_bytes,
+)
 from durable_goals.pointers import apply_operations
 from durable_goals.resolve import resolve_gateway
 from durable_goals.validate import (
@@ -195,6 +200,51 @@ class ResolverTests(unittest.TestCase):
             path.write_text('{"revision": 1, "revision": 2}\n')
             with self.assertRaisesRegex(ValidationError, "duplicate JSON object key"):
                 load_json(path)
+
+    def test_verified_bytes_are_the_bytes_that_get_parsed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "record.json"
+            path.write_text('{"value": "verified"}\n')
+            reference = {"path": "record.json", "sha256": sha256_file(path)}
+
+            verified_path, payload = verify_reference_bytes(
+                root, reference, label="record"
+            )
+            path.write_text('{"value": "replaced"}\n')
+
+            self.assertEqual(
+                load_json_bytes(payload, source=verified_path),
+                {"value": "verified"},
+            )
+
+    def test_non_finite_json_numbers_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "non-finite.json"
+            for value in ("NaN", "Infinity", "-Infinity"):
+                with self.subTest(value=value):
+                    path.write_text(f'{{"value": {value}}}\n')
+                    with self.assertRaisesRegex(
+                        ValidationError, "non-finite number"
+                    ):
+                        load_json(path)
+
+        contract = json.loads((EXAMPLE / "contract.json").read_text())
+        contract["completion"]["all"][0]["gte"] = float("nan")
+        with self.assertRaisesRegex(ValidationError, "NaN or Infinity"):
+            validate_contract(contract, goal_id="example-model-refresh")
+
+    def test_null_evidence_is_not_treated_as_missing(self) -> None:
+        equals = evaluate_predicate(
+            {"evidence": "receipt", "field": "", "equals": None},
+            {"receipt": None},
+        )
+        exists = evaluate_predicate(
+            {"evidence": "receipt", "field": "", "exists": True},
+            {"receipt": None},
+        )
+        self.assertTrue(equals.satisfied)
+        self.assertTrue(exists.satisfied)
 
 
 if __name__ == "__main__":

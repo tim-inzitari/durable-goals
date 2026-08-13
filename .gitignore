@@ -36,6 +36,7 @@ htmlcov/
 # Do not ignore .dgoal/history or .dgoal/evidence: gateways can reference them.
 **/.dgoal/write.lock
 **/.dgoal/workflow-claims.json
+**/.dgoal/workflow-claims/
 **/STATUS.json
 
 # Local technical-paper sources, figures, and rendered artifacts.

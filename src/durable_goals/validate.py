@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import math
 import re
 from typing import Any
 
@@ -13,6 +14,8 @@ CONTRACT_SCHEMA = "durable-goals.contract/v1"
 AMENDMENT_SCHEMA = "durable-goals.amendment/v1"
 ACTIVATION_SCHEMA = "durable-goals.activation/v1"
 EVIDENCE_INDEX_SCHEMA = "durable-goals.evidence-index/v1"
+
+
 def _only_keys(value: dict[str, Any], allowed: set[str], label: str) -> None:
     unknown = sorted(set(value) - allowed)
     if unknown:
@@ -53,6 +56,17 @@ def _portable_path(value: Any, label: str) -> str:
     if result.startswith(("/", "\\")) or re.match(r"^[A-Za-z]:[\\/]", result):
         raise ValidationError(f"{label} must be a portable relative path")
     return result
+
+
+def _finite_json(value: Any, label: str) -> None:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValidationError(f"{label} must not contain NaN or Infinity")
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _finite_json(item, f"{label}[{index}]")
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            _finite_json(item, f"{label}.{key}")
 
 
 def validate_gateway(value: Any) -> dict[str, Any]:
@@ -196,11 +210,16 @@ def validate_predicate(value: Any, label: str) -> None:
             raise ValidationError(f"{label} must contain exactly one comparator")
         comparator = comparators[0]
         _only_keys(predicate, {"evidence", "field", comparator}, label)
+        _finite_json(predicate[comparator], f"{label}.{comparator}")
         if comparator == "exists" and not isinstance(predicate[comparator], bool):
             raise ValidationError(f"{label}.exists must be a boolean")
         if comparator in {"gte", "lte"}:
             expected = predicate[comparator]
-            if isinstance(expected, bool) or not isinstance(expected, (int, float)):
+            if (
+                isinstance(expected, bool)
+                or not isinstance(expected, (int, float))
+                or (isinstance(expected, float) and not math.isfinite(expected))
+            ):
                 raise ValidationError(f"{label}.{comparator} must be a number")
 
 
@@ -259,6 +278,16 @@ def validate_amendments(
                 raise ValidationError("set amendment operation requires value")
             if item["op"] == "remove" and "value" in item:
                 raise ValidationError("remove amendment operation may not contain value")
+            if "value" in item:
+                _finite_json(
+                    item["value"],
+                    f"amendments[{index}].operations[{op_index}].value",
+                )
+            if "expect" in item:
+                _finite_json(
+                    item["expect"],
+                    f"amendments[{index}].operations[{op_index}].expect",
+                )
         activation_mode = _nonempty_string(
             amendment.get("activation_mode"),
             f"amendments[{index}].activation_mode",

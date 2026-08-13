@@ -227,12 +227,13 @@ def next_prompts(
     return [_prompt_for_node(path, node) for node in ready]
 
 
-def _claims_path(root: Path) -> Path:
-    return root / ".dgoal" / "workflow-claims.json"
+def _claims_path(root: Path, workflow_id: str) -> Path:
+    _identifier(workflow_id, "workflow_id")
+    return root / ".dgoal" / "workflow-claims" / f"{workflow_id}.json"
 
 
 def _load_claims(root: Path, workflow_id: str) -> dict[str, dict[str, str]]:
-    path = _claims_path(root)
+    path = _claims_path(root, workflow_id)
     if not path.exists():
         return {}
     value = load_json(path)
@@ -271,7 +272,7 @@ def _write_claims(
         )
         + "\n"
     ).encode("utf-8")
-    _atomic_write(root, _claims_path(root), payload)
+    _atomic_write(root, _claims_path(root, workflow_id), payload)
 
 
 def claim_next_prompt(
@@ -392,6 +393,17 @@ def _mutate_workflow(path: Path, mutation: Any) -> dict[str, Any]:
         updated["revision"] = workflow["revision"] + 1
         validate_workflow(updated)
         _write_workflow(path, updated)
+        claims_path = _claims_path(root, updated["workflow_id"])
+        if claims_path.exists():
+            claims = _load_claims(root, updated["workflow_id"])
+            live_node_ids = {item["id"] for item in updated["nodes"]}
+            retained_claims = {
+                node_id: claim
+                for node_id, claim in claims.items()
+                if node_id in live_node_ids
+            }
+            if retained_claims != claims:
+                _write_claims(root, updated["workflow_id"], retained_claims)
         return updated
 
 

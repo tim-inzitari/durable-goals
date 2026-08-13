@@ -13,6 +13,12 @@ class PredicateResult:
     explanation: dict[str, Any]
 
 
+def _json_equal(left: Any, right: Any) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    return left == right
+
+
 def evaluate_predicate(predicate: dict[str, Any], evidence: dict[str, Any]) -> PredicateResult:
     if "literal" in predicate:
         value = predicate["literal"]
@@ -34,10 +40,10 @@ def evaluate_predicate(predicate: dict[str, Any], evidence: dict[str, Any]) -> P
         return PredicateResult(not child.satisfied, {"not": child.explanation})
 
     evidence_id = predicate["evidence"]
-    payload = evidence.get(evidence_id)
     field = predicate.get("field", "")
-    if payload is None:
+    if evidence_id not in evidence:
         return PredicateResult(False, {"evidence": evidence_id, "reason": "missing"})
+    payload = evidence[evidence_id]
 
     sentinel = object()
     actual = get_pointer(payload, field, default=sentinel)
@@ -49,7 +55,7 @@ def evaluate_predicate(predicate: dict[str, Any], evidence: dict[str, Any]) -> P
         elif actual is sentinel:
             satisfied = False
         elif comparator == "equals":
-            satisfied = actual == expected
+            satisfied = _json_equal(actual, expected)
         elif comparator == "gte":
             satisfied = actual >= expected
         else:

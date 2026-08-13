@@ -31,7 +31,7 @@ from .workflow import (
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="dgoal", description="Resolve durable goal packages")
-    parser.add_argument("--version", action="version", version="dgoal 0.1.0")
+    parser.add_argument("--version", action="version", version="dgoal 0.1.1")
     subparsers = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (
         ("validate", "validate all documents and checksums"),

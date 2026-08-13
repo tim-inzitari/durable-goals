@@ -170,6 +170,19 @@ class WorkflowTests(unittest.TestCase):
             release_claim(workflow, "goal", claimant="thread-a")
             self.assertEqual(next_prompts(workflow)[0]["node_id"], "goal")
 
+    def test_workflows_in_one_directory_have_independent_claims(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = initialize_workflow(root / "first.json", workflow_id="first")
+            second = initialize_workflow(root / "second.json", workflow_id="second")
+
+            self.assertIsNone(claim_next_prompt(first, claimant="thread-a"))
+            self.assertIsNone(claim_next_prompt(second, claimant="thread-b"))
+
+            claims = root / ".dgoal" / "workflow-claims"
+            self.assertTrue((claims / "first.json").is_file())
+            self.assertTrue((claims / "second.json").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
