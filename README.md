@@ -57,11 +57,10 @@ dgoal init goals/my-goal \
 
 ## Try the example
 
-The example tracks a model promotion. The active goal requires `0.90`
-accuracy, but the recorded result is `0.87`. The owner has proposed lowering
-the threshold to `0.85`, but that change is still waiting for activation. This
-shows how Durable Goals keeps desired intent separate from the rules currently
-in force.
+The example shows a goal with recorded evidence and an owner-requested change
+that has not become active yet. It demonstrates the main idea: new intent can
+be saved immediately without pretending it is already the rule agents should
+follow.
 
 From a clone of this repository, run:
 
@@ -73,9 +72,9 @@ dgoal status examples/model-refresh/gateway.json
 dgoal resolve examples/model-refresh/gateway.json
 ```
 
-- `validate` checks the files and their checksums.
-- `status` shows whether the active and proposed goal are complete.
-- `resolve` shows the contracts, evidence, and pending activation together.
+- `validate` checks the goal package and its evidence.
+- `status` summarizes current progress.
+- `resolve` shows the active goal, desired goal, and pending changes together.
 
 ## What is included
 
