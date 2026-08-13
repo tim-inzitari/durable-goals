@@ -62,6 +62,15 @@ that has not become active yet. It demonstrates the main idea: new intent can
 be saved immediately without pretending it is already the rule agents should
 follow.
 
+In the included files, a model scores `0.87` against an active `0.90`
+requirement. The owner records a new `0.85` requirement, but it remains pending
+until activation.
+
+**Active** means the goal agents must follow now. **Activation** is the explicit
+step that makes a pending owner change active. **Resolve** reads the goal,
+changes, activations, and evidence to calculate both the active goal and the
+latest desired goal.
+
 From a clone of this repository, run:
 
 ```bash
