@@ -32,8 +32,10 @@ htmlcov/
 *.swo
 *~
 
-# Runtime state generated while exercising Durable Goals locally
-**/.dgoal/
+# Disposable runtime state generated while exercising Durable Goals locally.
+# Do not ignore .dgoal/history or .dgoal/evidence: gateways can reference them.
+**/.dgoal/write.lock
+**/.dgoal/workflow-claims.json
 **/STATUS.json
 
 # Local technical-paper sources, figures, and rendered artifacts.
