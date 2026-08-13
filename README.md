@@ -57,10 +57,10 @@ dgoal init goals/my-goal \
 
 ## Try the example
 
-The example shows a goal with recorded evidence and an owner-requested change
-that has not become active yet. It demonstrates the main idea: new intent can
-be saved immediately without pretending it is already the rule agents should
-follow.
+The repository includes a prebuilt goal package with recorded evidence and an
+owner-requested change that has not become active yet. The CLI does not create
+the model result; it reads the checked-in files and shows how Durable Goals
+interprets them.
 
 In the included files, a model scores `0.87` against an active `0.90`
 requirement. The owner records a new `0.85` requirement, but it remains pending
