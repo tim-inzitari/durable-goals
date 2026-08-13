@@ -21,12 +21,14 @@ If your agent harness discovers the included `update-durable-goal` skill, you
 do not need to memorize the CLI. Just type what you want into the harness:
 
 ```text
-Add a goal: ship the beta after the test suite passes.
+Add a goal: build the Q4 sales plan, then create the hiring plan needed to
+deliver it.
 ```
 
-You can use the same natural language to update a goal, activate a revision,
-record evidence, or connect goals in a workflow. The skill translates the
-request into the durable files stored in your repository.
+The harness records these as two ordered goals: the hiring plan becomes ready
+after the sales plan is complete. You can use the same natural language to
+update goals, record evidence, or connect more work. The skill translates the
+request into durable files stored in your repository.
 
 The basic convention is simple: an agent reads the goal package's `GOAL.md`
 before acting. The repository remains the source of truth, even when the chat
