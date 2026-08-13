@@ -64,12 +64,7 @@ follow.
 
 In the included files, a model scores `0.87` against an active `0.90`
 requirement. The owner records a new `0.85` requirement, but it remains pending
-until activation.
-
-**Active** means the goal agents must follow now. **Activation** is the explicit
-step that makes a pending owner change active. **Resolve** reads the goal,
-changes, activations, and evidence to calculate both the active goal and the
-latest desired goal.
+until activation of the new goal target.
 
 From a clone of this repository, run:
 
