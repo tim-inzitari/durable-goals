@@ -54,6 +54,19 @@ The basic convention is simple: an agent reads the goal package's `GOAL.md`
 before acting. The repository remains the source of truth, even when the chat
 or process disappears.
 
+## Use it from your agent
+
+If your agent harness discovers the included `update-durable-goal` skill, you
+do not need to memorize the CLI. Just type what you want into the harness:
+
+```text
+Add a goal: ship the beta after the test suite passes.
+```
+
+You can use the same natural language to update a goal, activate a revision,
+record evidence, or connect goals in a workflow. The skill translates the
+request into the durable files stored in your repository.
+
 ## What is included
 
 - Persistent, versioned goal contracts
